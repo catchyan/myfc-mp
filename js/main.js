@@ -70,6 +70,7 @@ class Main {
         this.server.onBroadcast(() => {});
         this.server.onRoomInfoChange(() => console.log('房间信息变化'));
         this.server.onGameStart(() => {
+            wx.hideLoading();
             this.loadRomAndStart();
         });
         this.server.onGameEnd(() => console.log('游戏结束'));
@@ -127,14 +128,24 @@ class Main {
         this.roomId = roomId;
         this.uiButtons = [
             {
-                text: '复制',
+                text: '复制房间号',
                 x: cx,
                 y: cy + 40,
                 w,
                 h,
                 onTap: () => {
                     wx.setClipboardData({ data: this.roomId });
-                    wx.showLoading({ title: '等待其他玩家...' });
+                    wx.showToast({ title: '已复制', icon: 'none', duration: 800 });
+                },
+            },
+            {
+                text: '开始游戏',
+                x: cx,
+                y: cy + 110,
+                w,
+                h,
+                onTap: () => {
+                    this.server.startGame();
                 },
             },
         ];
@@ -177,7 +188,7 @@ class Main {
             this.server.joinRoom({
                 accessInfo: roomId,
             }).then(() => {
-                this.server.startGame();
+                wx.showLoading({ title: '等待房主开始...', mask: true });
             }).catch(console.error);
         }).catch(console.error);
     }
