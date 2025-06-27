@@ -23,124 +23,212 @@ class Main {
     }
 
     init() {
-        // 模式选择Modal
-        wx.showActionSheet({
-            itemList: ['单人模式', '双人模式'],
-            success: (res) => {
-                this.mode = res.tapIndex;
-                if (this.mode == 0) {
-                    wx.showLoading({
-                        title: '资源下载中',
-                        mask: true
-                    })
-                    wx.cloud.downloadFile({
-                        fileID: 'cloud://cloud1-5gxazrxk9ec80ff5.636c-cloud1-5gxazrxk9ec80ff5-1366451675/魂斗罗kc版.nes', // 文件 ID
-                        success: res => {
-                            const fs = wx.getFileSystemManager();
-                            fs.readFile({
-                                filePath: res.tempFilePath,
-                                //   encoding: '', // 默认为 ArrayBuffer
-                                success: (readRes) => {
-                                    const romData = this.ab2str(readRes.data);
-                                    wx.hideLoading();
-                                    this.startNES(romData);
-                                }
-                            })
-                        },
-                        fail: console.error
-                    })
-                } else {
-                    wx.showActionSheet({
-                        itemList: ['创建房间', '加入房间'],
-                        success: async (res) => {
-                            this.server = wx.getGameServerManager();
-                            await this.server.login();
-                            this.server.onBroadcast(() => {
-                                // 收到来自领一个玩家的操作信息
-                            });
-                            // this.server.onSyncFrame((res) => {
-                            //     console.log(res);
-                            //     if(this.nes) {
-                            //         this.nes.frame();
-                            //     }
-                            // });
-                            this.server.onRoomInfoChange(() => console.log('房间信息变化'));
-                            this.server.onGameStart(()=>{
-                                wx.showLoading({
-                                    title: '资源下载中',
-                                    mask: true
-                                })
-                                wx.cloud.downloadFile({
-                                    fileID: 'cloud://cloud1-5gxazrxk9ec80ff5.636c-cloud1-5gxazrxk9ec80ff5-1366451675/魂斗罗kc版.nes', // 文件 ID
-                                    success: res => {
-                                        const fs = wx.getFileSystemManager();
-                                        fs.readFile({
-                                            filePath: res.tempFilePath,
-                                            //   encoding: '', // 默认为 ArrayBuffer
-                                            success: (readRes) => {
-                                                const romData = this.ab2str(readRes.data);
-                                                wx.hideLoading();
-                                                this.startNES(romData);
-                                            }
-                                        })
-                                    },
-                                    fail: console.error
-                                })
-                            });
-                            this.server.onGameEnd(() => console.log('游戏结束'));
-                            if (res.tapIndex == 0) {
-                                this.server.login().then(res => {
-                                    this.server.createRoom({
-                                        maxMemberNum: 2,
-                                        startPercent: 0,
-                                        needUserInfo: false,
-                                    }).then(res => {
-                                        console.log(res.data.accessInfo);
-                                        wx.showModal({
-                                            title: '房间号:',
-                                            content: res.data.accessInfo,
-                                            showCancel: false,
-                                            confirmText: '复制',
-                                            success: () => {
-                                                console.log("复制" + res.data.accessInfo)
-                                                wx.setClipboardData({
-                                                    data: res.data.accessInfo,
-                                                })
-                                                wx.showLoading({
-                                                    title: '等待其他玩家...',
-                                                })
-                                            }
-                                        })
-                                    }).catch(console.error);
-                                }).catch(console.error);
+        this.uiButtons = [];
+        this.uiState = null;
+        this.showModeUI();
+    }
 
-                            } else {
-                                wx.showModal({
-                                    title: '输入房间号',
-                                    editable: true,
-                                    content: '',
-                                    showCancel: false,
-                                    confirmText: '加入',
-                                    success: (roomIdRes) => {
-                                        const roomId = roomIdRes.content;
-                                        this.server.login().then(res => {
-                                            this.server.joinRoom({
-                                                accessInfo: roomId,
-                                            }).then(res => {
-                                                console.log(res);
-                                                this.server.startGame();
-                                                
-                                            }).catch(console.error);
-                                        }).catch(console.error);
+    showModeUI() {
+        this.uiState = 'mode';
+        const w = 220;
+        const h = 60;
+        const cx = this.canvasWidth / 2 - w / 2;
+        const cy = this.canvasHeight / 2;
+        this.uiButtons = [
+            {
+                text: '单人模式',
+                x: cx,
+                y: cy - 80,
+                w,
+                h,
+                onTap: () => this.startSingleMode(),
+            },
+            {
+                text: '双人模式',
+                x: cx,
+                y: cy + 10,
+                w,
+                h,
+                onTap: () => this.showNetworkUI(),
+            },
+        ];
+        this.drawUI('选择模式');
+        wx.onTouchStart(this.handleUITouchStart.bind(this));
+    }
 
-                                    }
-                                })
-                            }
-                        }
-                    })
-                }
+    startSingleMode() {
+        this.mode = 0;
+        this.loadRomAndStart();
+    }
+
+    async setupServer() {
+        if (!this.server) {
+            this.server = wx.getGameServerManager();
+        }
+        await this.server.login();
+        this.server.onBroadcast(() => {});
+        this.server.onRoomInfoChange(() => console.log('房间信息变化'));
+        this.server.onGameStart(() => {
+            this.loadRomAndStart();
+        });
+        this.server.onGameEnd(() => console.log('游戏结束'));
+    }
+
+    showNetworkUI() {
+        this.mode = 1;
+        const w = 220;
+        const h = 60;
+        const cx = this.canvasWidth / 2 - w / 2;
+        const cy = this.canvasHeight / 2;
+        this.uiState = 'network';
+        this.uiButtons = [
+            {
+                text: '创建房间',
+                x: cx,
+                y: cy - 80,
+                w,
+                h,
+                onTap: () => this.createRoom(),
+            },
+            {
+                text: '加入房间',
+                x: cx,
+                y: cy + 10,
+                w,
+                h,
+                onTap: () => this.showJoinRoomUI(),
+            },
+        ];
+        this.setupServer().then(() => {
+            this.drawUI('联机模式');
+        });
+    }
+
+    createRoom() {
+        this.server.login().then(() => {
+            this.server.createRoom({
+                maxMemberNum: 2,
+                startPercent: 0,
+                needUserInfo: false,
+            }).then(res => {
+                this.showRoomInfo(res.data.accessInfo);
+            }).catch(console.error);
+        }).catch(console.error);
+    }
+
+    showRoomInfo(roomId) {
+        this.uiState = 'roomInfo';
+        const w = 160;
+        const h = 50;
+        const cx = this.canvasWidth / 2 - w / 2;
+        const cy = this.canvasHeight / 2;
+        this.roomId = roomId;
+        this.uiButtons = [
+            {
+                text: '复制',
+                x: cx,
+                y: cy + 40,
+                w,
+                h,
+                onTap: () => {
+                    wx.setClipboardData({ data: this.roomId });
+                    wx.showLoading({ title: '等待其他玩家...' });
+                },
+            },
+        ];
+        this.drawUI('房间号: ' + roomId);
+    }
+
+    showJoinRoomUI() {
+        this.uiState = 'joinInput';
+        this.inputRoomId = '';
+        const w = 200;
+        const h = 50;
+        const cx = this.canvasWidth / 2 - w / 2;
+        const cy = this.canvasHeight / 2;
+        this.uiButtons = [
+            {
+                text: '加入',
+                x: cx,
+                y: cy + 40,
+                w,
+                h,
+                onTap: () => this.joinRoom(),
+            },
+        ];
+        wx.showKeyboard({ defaultValue: '', multiple: false });
+        wx.onKeyboardInput(res => {
+            this.inputRoomId = res.value;
+            this.drawUI('输入房间号: ' + this.inputRoomId);
+        });
+        wx.onKeyboardConfirm(() => {
+            wx.hideKeyboard();
+            this.joinRoom();
+        });
+        this.drawUI('输入房间号:');
+    }
+
+    joinRoom() {
+        const roomId = this.inputRoomId;
+        if (!roomId) return;
+        this.server.login().then(() => {
+            this.server.joinRoom({
+                accessInfo: roomId,
+            }).then(() => {
+                this.server.startGame();
+            }).catch(console.error);
+        }).catch(console.error);
+    }
+
+    drawUI(title) {
+        this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+        this.ctx.fillStyle = '#000000';
+        this.ctx.globalAlpha = 0.6;
+        this.ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
+        this.ctx.globalAlpha = 1;
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.textAlign = 'center';
+        this.ctx.font = '24px sans-serif';
+        this.ctx.fillText(title, this.canvasWidth / 2, this.canvasHeight / 2 - 120);
+        for (const b of this.uiButtons) {
+            this.ctx.fillStyle = '#222222';
+            this.ctx.fillRect(b.x, b.y, b.w, b.h);
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.fillText(b.text, b.x + b.w / 2, b.y + b.h / 2 + 8);
+        }
+    }
+
+    handleUITouchStart(e) {
+        if (!this.uiButtons) return;
+        const touch = e.touches[0];
+        if (!touch) return;
+        const x = touch.x !== undefined ? touch.x : touch.clientX;
+        const y = touch.y !== undefined ? touch.y : touch.clientY;
+        for (const b of this.uiButtons) {
+            if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) {
+                if (b.onTap) b.onTap();
+                break;
             }
-        })
+        }
+    }
+
+    loadRomAndStart() {
+        wx.showLoading({ title: '资源下载中', mask: true });
+        wx.cloud.downloadFile({
+            fileID: 'cloud://cloud1-5gxazrxk9ec80ff5.636c-cloud1-5gxazrxk9ec80ff5-1366451675/魂斗罗kc版.nes',
+            success: res => {
+                const fs = wx.getFileSystemManager();
+                fs.readFile({
+                    filePath: res.tempFilePath,
+                    success: readRes => {
+                        const romData = this.ab2str(readRes.data);
+                        wx.hideLoading();
+                        this.startNES(romData);
+                    },
+                });
+            },
+            fail: console.error,
+        });
     }
 
     ab2str(buf) {
