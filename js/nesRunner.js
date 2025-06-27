@@ -34,8 +34,21 @@ export default class NesRunner {
         const drawHeight = 240 * scale;
         const offsetX = Math.floor((this.canvasWidth - drawWidth) / 2);
         const offsetY = Math.floor((this.canvasHeight - drawHeight) / 2);
-        this.ctx.clearRect(offsetX, offsetY, drawWidth, drawHeight);
+        this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
         this.ctx.drawImage(offscreen, 0, 0, 256, 240, offsetX, offsetY, drawWidth, drawHeight);
+
+        if (this.mode === 1 && this.server && this.server.getRoomInfo) {
+          const info = this.server.getRoomInfo() || {};
+          const members = info.memberList || [];
+          const boxH = members.length * 16 + 8;
+          this.ctx.fillStyle = 'rgba(0,0,0,0.5)';
+          this.ctx.fillRect(4, 4, 72, boxH);
+          this.ctx.fillStyle = '#ffffff';
+          this.ctx.font = '10px sans-serif';
+          members.forEach((m, idx) => {
+            this.ctx.fillText(`P${idx + 1}:在线`, 8, 16 + idx * 16);
+          });
+        }
       },
       onAudioSample: () => {},
     });
