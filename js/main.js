@@ -53,7 +53,7 @@ class Main {
                 onTap: () => this.showNetworkUI(),
             },
         ];
-        this.drawUI('选择模式');
+        this.drawUI('选择模式', true);
         wx.onTouchStart(this.handleUITouchStart.bind(this));
     }
 
@@ -106,12 +106,13 @@ class Main {
     }
 
     createRoom() {
-        this.server.login().then(() => {
+        this.setupServer().then(() => {
             this.server.createRoom({
                 maxMemberNum: 2,
                 startPercent: 0,
                 needUserInfo: false,
             }).then(res => {
+                console.log('房间号:', res.data.accessInfo);
                 this.showRoomInfo(res.data.accessInfo);
             }).catch(console.error);
         }).catch(console.error);
@@ -172,7 +173,7 @@ class Main {
     joinRoom() {
         const roomId = this.inputRoomId;
         if (!roomId) return;
-        this.server.login().then(() => {
+        this.setupServer().then(() => {
             this.server.joinRoom({
                 accessInfo: roomId,
             }).then(() => {
@@ -181,12 +182,22 @@ class Main {
         }).catch(console.error);
     }
 
-    drawUI(title) {
+    drawUI(title, decor = false) {
         this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
         this.ctx.fillStyle = '#000000';
         this.ctx.globalAlpha = 0.6;
         this.ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
         this.ctx.globalAlpha = 1;
+        if (decor) {
+            const cx = this.canvasWidth / 2;
+            this.ctx.fillStyle = '#aaaaaa';
+            this.ctx.fillRect(cx - 80, this.canvasHeight / 2 - 190, 160, 80);
+            this.ctx.fillStyle = '#cc0000';
+            this.ctx.fillRect(cx - 60, this.canvasHeight / 2 - 180, 120, 20);
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.fillRect(cx - 100, this.canvasHeight / 2 - 210, 20, 20);
+            this.ctx.fillRect(cx + 80, this.canvasHeight / 2 - 210, 20, 20);
+        }
         this.ctx.fillStyle = '#ffffff';
         this.ctx.textAlign = 'center';
         this.ctx.font = '24px sans-serif';
