@@ -394,14 +394,14 @@ class Main {
             // 帧同步主循环由 onSyncFrame 驱动
             this.server.onSyncFrame((res) => {
                 // 收到所有玩家输入帧
-                // res.actionList: [{openId, data: {input, frameId}}, ...]
+                // res.frameDataList: [{openId, data: {input, frameId}}, ...]
                 // 按 openId 排序，房主为1P，加入者为2P
                 console.log(res);
                 const frameInputs = [null, null, null]; // 1-based: [null, 1P, 2P]
                 const info = this.server.getRoomInfo && this.server.getRoomInfo();
                 let openidList = info && info.memberList ? info.memberList.map(m => m.openId) : [];
-                if (Array.isArray(res.actionList)) {
-                    res.actionList.forEach(fd => {
+                if (Array.isArray(res.frameDataList)) {
+                    res.frameDataList.forEach(fd => {
                         const idx = openidList.indexOf(fd.openId) + 1;
                         if (idx === 1 || idx === 2) {
                             frameInputs[idx] = fd.data.input;
