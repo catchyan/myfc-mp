@@ -1,0 +1,22 @@
+{
+  "libVersion": "3.8.9",
+  "projectname": "%E9%AD%82%E6%96%97%E7%BD%97",
+  "setting": {
+    "urlCheck": false,
+    "coverView": false,
+    "lazyloadPlaceholderEnable": false,
+    "skylineRenderEnable": false,
+    "preloadBackgroundData": false,
+    "autoAudits": false,
+    "useApiHook": true,
+    "useApiHostProcess": true,
+    "showShadowRootInWxmlPanel": false,
+    "useStaticServer": true,
+    "useLanDebug": false,
+    "showES6CompileOption": false,
+    "compileHotReLoad": false,
+    "bigPackageSizeSupport": false,
+    "checkInvalidKey": true,
+    "ignoreDevUnusedFiles": true
+  }
+}
