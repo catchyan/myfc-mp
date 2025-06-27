@@ -10,6 +10,7 @@ export default class NesRunner {
     this.server = server;
     this.nes = null;
     this.syncTimer = null;
+    this.drawControls = () => {};
   }
 
   start(romData) {
@@ -49,6 +50,7 @@ export default class NesRunner {
             this.ctx.fillText(`P${idx + 1}:在线`, 8, 16 + idx * 16);
           });
         }
+        this.drawControls();
       },
       onAudioSample: () => {},
     });
@@ -121,6 +123,32 @@ export default class NesRunner {
     selectImg.src = 'images/playstation3_button_select_outline.png';
     selectImg.onload = () => {
       this.ctx.drawImage(selectImg, select_X - startRadius, select_Y - startRadius, startRadius * 2, startRadius * 2);
+    };
+
+    this.drawControls = () => {
+      if (dpadImg.complete) {
+        this.ctx.drawImage(dpadImg, dpadX - dpadSize / 2, dpadY - dpadSize / 2, dpadSize, dpadSize);
+      }
+      if (btnAImg.complete) {
+        this.ctx.drawImage(btnAImg, btnA_X - btnRadius, btnA_Y - btnRadius, btnRadius * 2, btnRadius * 2);
+        this.ctx.beginPath();
+        this.ctx.arc(btnA_X, btnA_Y, btnRadius * 0.8, 0, 2 * Math.PI);
+        this.ctx.strokeStyle = 'rgba(255,0,0,0.3)';
+        this.ctx.stroke();
+      }
+      if (btnBImg.complete) {
+        this.ctx.drawImage(btnBImg, btnB_X - btnRadius, btnB_Y - btnRadius, btnRadius * 2, btnRadius * 2);
+        this.ctx.beginPath();
+        this.ctx.arc(btnB_X, btnB_Y, btnRadius * 0.8, 0, 2 * Math.PI);
+        this.ctx.strokeStyle = 'rgba(255,0,0,0.3)';
+        this.ctx.stroke();
+      }
+      if (startImg.complete) {
+        this.ctx.drawImage(startImg, start_X - startRadius, start_Y - startRadius, startRadius * 2, startRadius * 2);
+      }
+      if (selectImg.complete) {
+        this.ctx.drawImage(selectImg, select_X - startRadius, select_Y - startRadius, startRadius * 2, startRadius * 2);
+      }
     };
 
     this.currentKeys = new Set();
